@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: whiteboard-mongodb
+    restart: always
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb_data:/data/db
+
+  redis:
+    image: redis:alpine
+    container_name: whiteboard-redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: whiteboard-backend
+    restart: always
+    ports:
+      - '5000:5000'
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/collaborative_whiteboard
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: super_secure_access_secret_production_key
+      JWT_REFRESH_SECRET: super_secure_refresh_secret_production_key
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CLIENT_URL: http://localhost:3000
+    depends_on:
+      - mongodb
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: whiteboard-frontend
+    restart: always
+    ports:
+      - '3000:80'
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
+  redis_data:
