@@ -88,18 +88,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({ boardId, onClose }) =>
             </span>
             <span className="text-xs text-slate-500">Diagram + Meeting Notes</span>
           </button>
-
-          <button
-            onClick={handleDownloadPNG}
-            disabled={downloadingPNG}
-            className="p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500 rounded-xl flex flex-col items-center gap-2 text-center transition-all disabled:opacity-50"
-          >
-            <ImageIcon className="w-8 h-8 text-indigo-400" />
-            <span className="font-semibold text-sm">
-              {downloadingPNG ? 'Exporting...' : 'PNG Diagram'}
-            </span>
-            <span className="text-xs text-slate-500">High-res canvas image</span>
-          </button>
         </div>
       </div>
     </div>

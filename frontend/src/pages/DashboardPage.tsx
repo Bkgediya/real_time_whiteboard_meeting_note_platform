@@ -319,7 +319,7 @@ export const DashboardPage: React.FC = () => {
             <p className="text-sm text-slate-500 mt-1">Create a new board or ask a colleague to invite you to a board!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {boards.map((board) => {
               const currentUserId = currentUser ? (currentUser.id || (currentUser as any)._id) : null;
               const boardOwnerId = typeof board.ownerId === 'object' ? (board.ownerId as any)._id || (board.ownerId as any).id : board.ownerId;
@@ -345,8 +345,8 @@ export const DashboardPage: React.FC = () => {
                       </h3>
                     </div>
 
-                    <div className="flex items-center justify-between mt-2">
-                      <span className={`px-2 py-0.5 border text-[10px] font-bold rounded-full uppercase flex items-center space-x-1 ${userRole === 'Owner'
+                    <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
+                      <span className={`px-2.5 py-0.5 border text-[10px] font-bold rounded-full uppercase flex items-center space-x-1 whitespace-nowrap ${userRole === 'Owner'
                         ? 'bg-blue-600/20 text-blue-400 border-blue-500/30'
                         : userRole === 'editor'
                           ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30'
@@ -364,11 +364,11 @@ export const DashboardPage: React.FC = () => {
                             e.stopPropagation();
                             setManagingBoardId(board._id);
                           }}
-                          className="px-2.5 py-1 bg-blue-600/10 hover:bg-blue-600 border border-blue-500/30 text-blue-400 hover:text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all"
-                          title="Invite users to this specific board"
+                          className="px-2.5 py-1 bg-blue-600/10 hover:bg-blue-600 border border-blue-500/30 text-blue-400 hover:text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all whitespace-nowrap flex-shrink-0"
+                          title="Invite users to this board"
                         >
                           <UserPlus className="w-3.5 h-3.5" />
-                          <span>Invite to Board</span>
+                          <span>Invite</span>
                         </button>
                       )}
                     </div>
