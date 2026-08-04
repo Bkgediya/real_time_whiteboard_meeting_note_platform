@@ -17,6 +17,7 @@ export class WorkspaceService {
   async getUserWorkspaces(userId: string) {
     const workspaces = await Workspace.find({ 'members.userId': userId })
       .populate('members.userId', 'name email avatar')
+      .populate('ownerId', 'name email avatar')
       .sort({ updatedAt: -1 });
     return workspaces;
   }
@@ -50,18 +51,37 @@ export class WorkspaceService {
       throw { statusCode: 404, message: 'Workspace not found' };
     }
 
+    const targetEmail = email.toLowerCase().trim();
+
+    // Check if invitation already exists
+    const existingInvite = await Invitation.findOne({ workspaceId, email: targetEmail });
+    if (existingInvite) {
+      return existingInvite;
+    }
+
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     const invitation = await Invitation.create({
       workspaceId,
-      email,
+      email: targetEmail,
       role,
       token,
       expiresAt,
     });
 
     return invitation;
+  }
+
+  async getPendingInvitations(email: string) {
+    const invitations = await Invitation.find({ email: email.toLowerCase() })
+      .populate({
+        path: 'workspaceId',
+        select: 'name ownerId',
+        populate: { path: 'ownerId', select: 'name email' },
+      })
+      .sort({ createdAt: -1 });
+    return invitations;
   }
 
   async acceptInvitation(token: string, userId: string) {
@@ -83,6 +103,11 @@ export class WorkspaceService {
 
     await Invitation.findByIdAndDelete(invitation._id);
     return workspace;
+  }
+
+  async declineInvitation(token: string) {
+    await Invitation.findOneAndDelete({ token });
+    return { message: 'Invitation declined' };
   }
 
   async removeMember(workspaceId: string, targetUserId: string) {

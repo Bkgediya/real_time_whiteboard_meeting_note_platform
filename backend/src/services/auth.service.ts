@@ -29,8 +29,8 @@ export class AuthService {
       members: [{ userId: user._id, role: 'owner' }],
     });
 
-    const accessToken = generateAccessToken({ userId: user._id.toString(), email: user.email });
-    const refreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email });
+    const accessToken = generateAccessToken({ userId: user._id.toString(), email: user.email, name: user.name });
+    const refreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email, name: user.name });
 
     user.accessToken = accessToken;
     user.refreshToken = refreshToken;
@@ -61,8 +61,8 @@ export class AuthService {
       throw { statusCode: 401, message: 'Invalid email or password' };
     }
 
-    const accessToken = generateAccessToken({ userId: user._id.toString(), email: user.email });
-    const refreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email });
+    const accessToken = generateAccessToken({ userId: user._id.toString(), email: user.email, name: user.name });
+    const refreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email, name: user.name });
 
     user.accessToken = accessToken;
     user.refreshToken = refreshToken;
@@ -98,8 +98,8 @@ export class AuthService {
       throw { statusCode: 401, message: 'Invalid refresh token' };
     }
 
-    const newAccessToken = generateAccessToken({ userId: user._id.toString(), email: user.email });
-    const newRefreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email });
+    const newAccessToken = generateAccessToken({ userId: user._id.toString(), email: user.email, name: user.name });
+    const newRefreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email, name: user.name });
 
     user.accessToken = newAccessToken;
     user.refreshToken = newRefreshToken;

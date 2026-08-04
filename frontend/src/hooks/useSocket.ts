@@ -8,6 +8,7 @@ export interface CursorPresence {
   userName: string;
   x: number;
   y: number;
+  timestamp?: number;
 }
 
 export const useSocket = (boardId?: string) => {
@@ -15,7 +16,11 @@ export const useSocket = (boardId?: string) => {
   const [cursors, setCursors] = useState<Record<string, CursorPresence>>({});
   const [notesContent, setNotesContent] = useState<string>('');
   const accessToken = useAuthStore((state) => state.accessToken);
+
   const addElement = useBoardStore((state) => state.addElement);
+  const updateElement = useBoardStore((state) => state.updateElement);
+  const removeElement = useBoardStore((state) => state.removeElement);
+  const setElements = useBoardStore((state) => state.setElements);
 
   useEffect(() => {
     if (!boardId || !accessToken) return;
@@ -28,20 +33,37 @@ export const useSocket = (boardId?: string) => {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('[Socket] Connected to server');
       socket.emit('board:join', boardId);
     });
 
     socket.on('cursor:update', (data: CursorPresence) => {
       setCursors((prev) => ({
         ...prev,
-        [data.userId]: data,
+        [data.userId]: {
+          ...data,
+          timestamp: data.timestamp || Date.now(),
+        },
       }));
     });
 
-    socket.on('canvas:op', (data: { opType: string; element: any }) => {
-      if (data.opType === 'add') {
-        addElement(data.element);
+    socket.on('cursor:remove', (data: { userId: string }) => {
+      setCursors((prev) => {
+        const copy = { ...prev };
+        delete copy[data.userId];
+        return copy;
+      });
+    });
+
+    socket.on('canvas:op', (data: { opType: 'add' | 'update' | 'delete' | 'clear'; element: any }) => {
+      const { opType, element } = data;
+      if (opType === 'add' && element) {
+        addElement(element);
+      } else if (opType === 'update' && element?.id) {
+        updateElement(element.id, element);
+      } else if (opType === 'delete' && element?.id) {
+        removeElement(element.id);
+      } else if (opType === 'clear') {
+        setElements([]);
       }
     });
 
@@ -49,11 +71,28 @@ export const useSocket = (boardId?: string) => {
       setNotesContent(data.content);
     });
 
+    // Stale cursor auto-pruning interval (removes cursor if no update for 2.5s)
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      setCursors((prev) => {
+        let changed = false;
+        const copy = { ...prev };
+        Object.entries(copy).forEach(([id, cursor]) => {
+          if (cursor.timestamp && now - cursor.timestamp > 2500) {
+            delete copy[id];
+            changed = true;
+          }
+        });
+        return changed ? copy : prev;
+      });
+    }, 1000);
+
     return () => {
+      clearInterval(cleanupInterval);
       socket.emit('board:leave', boardId);
       socket.disconnect();
     };
-  }, [boardId, accessToken, addElement]);
+  }, [boardId, accessToken, addElement, updateElement, removeElement, setElements]);
 
   const emitCursorMove = (x: number, y: number, userName: string) => {
     if (socketRef.current && boardId) {

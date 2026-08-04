@@ -32,6 +32,7 @@ export const initSocketGateway = (httpServer: HTTPServer): Server => {
     // Room join logic
     socket.on('board:join', (boardId: string) => {
       const roomName = `board:${boardId}`;
+      socket.data.currentBoardId = boardId;
       socket.join(roomName);
       console.log(`[Socket.IO] User ${socket.user?.email} joined room ${roomName}`);
     });
@@ -40,6 +41,9 @@ export const initSocketGateway = (httpServer: HTTPServer): Server => {
     socket.on('board:leave', (boardId: string) => {
       const roomName = `board:${boardId}`;
       socket.leave(roomName);
+      if (socket.user?.userId) {
+        socket.to(roomName).emit('cursor:remove', { userId: socket.user.userId });
+      }
       console.log(`[Socket.IO] User ${socket.user?.email} left room ${roomName}`);
     });
 
@@ -49,6 +53,11 @@ export const initSocketGateway = (httpServer: HTTPServer): Server => {
     registerNotesHandlers(io, socket);
 
     socket.on('disconnect', () => {
+      const boardId = socket.data.currentBoardId;
+      if (boardId && socket.user?.userId) {
+        const roomName = `board:${boardId}`;
+        socket.to(roomName).emit('cursor:remove', { userId: socket.user.userId });
+      }
       console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
     });
   });

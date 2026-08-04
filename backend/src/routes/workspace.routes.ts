@@ -10,12 +10,14 @@ router.use(authenticateJWT);
 
 router.post('/', workspaceController.create);
 router.get('/', workspaceController.getAll);
+router.get('/invitations/pending', workspaceController.getPendingInvitations);
 router.get('/:id', checkWorkspaceRole('viewer'), workspaceController.getById);
 router.put('/:id', checkWorkspaceRole('owner'), workspaceController.update);
 router.delete('/:id', checkWorkspaceRole('owner'), workspaceController.delete);
 
 router.post('/:id/invite', checkWorkspaceRole('owner'), workspaceController.inviteMember);
 router.post('/accept-invite/:token', workspaceController.acceptInvitation);
+router.post('/decline-invite/:token', workspaceController.declineInvitation);
 router.delete('/:id/members/:memberId', checkWorkspaceRole('owner'), workspaceController.removeMember);
 
 export default router;

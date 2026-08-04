@@ -1,13 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
-import { LogOut, LayoutGrid, User, Sparkles } from 'lucide-react';
+import { authApi } from '../../api/authApi';
+import { LogOut, Sparkles, User as UserIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Navbar: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, setUser, logout } = useAuthStore();
   const { activeWorkspace, workspaces, setActiveWorkspace } = useWorkspaceStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      authApi
+        .getCurrentUser()
+        .then((userData) => setUser(userData))
+        .catch(() => {});
+    }
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -39,7 +49,7 @@ export const Navbar: React.FC = () => {
                 const target = workspaces.find((w) => w._id === e.target.value);
                 if (target) setActiveWorkspace(target);
               }}
-              className="bg-slate-900 text-sm font-medium border border-slate-700/80 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 text-slate-200 cursor-pointer"
+              className="bg-slate-900 text-sm font-semibold border border-slate-700/80 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 text-slate-200 cursor-pointer shadow-sm"
             >
               {workspaces.map((w) => (
                 <option key={w._id} value={w._id}>
@@ -51,14 +61,22 @@ export const Navbar: React.FC = () => {
         )}
       </div>
 
-      {/* User Actions */}
+      {/* User Info & Actions */}
       <div className="flex items-center space-x-4">
-        {user && (
-          <div className="flex items-center space-x-3 bg-slate-900 border border-slate-800 rounded-full py-1.5 px-3">
-            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
-              {user.name.charAt(0).toUpperCase()}
+        {user ? (
+          <div className="flex items-center space-x-3 bg-slate-900 border border-slate-800 rounded-full py-1 px-3 shadow-inner">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shadow">
+              {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
-            <span className="text-sm font-medium text-slate-300">{user.name}</span>
+            <div className="flex flex-col text-left">
+              <span className="text-xs font-bold text-slate-200 leading-tight">{user.name}</span>
+              <span className="text-[10px] text-slate-400 leading-tight">{user.email}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2 text-slate-400 text-xs">
+            <UserIcon className="w-4 h-4 animate-pulse" />
+            <span>Loading profile...</span>
           </div>
         )}
 

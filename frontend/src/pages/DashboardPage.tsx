@@ -1,32 +1,51 @@
 import React, { useEffect, useState } from 'react';
 import { Navbar } from '../components/layout/Navbar';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
-import { workspaceApi } from '../api/workspaceApi';
+import { workspaceApi, WorkspaceMember, Invitation } from '../api/workspaceApi';
 import { boardApi, Board } from '../api/boardApi';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Star, Clock, LayoutGrid, Users, UserPlus, Trash2 } from 'lucide-react';
+import { Plus, Search, Star, Clock, LayoutGrid, Users, UserPlus, Mail, Check, X, Shield, Trash2 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const { activeWorkspace, setWorkspaces, setActiveWorkspace } = useWorkspaceStore();
   const [boards, setBoards] = useState<Board[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<Invitation[]>([]);
   const [search, setSearch] = useState('');
   const [starredOnly, setStarredOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showMembersModal, setShowMembersModal] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'owner' | 'editor' | 'viewer'>('editor');
+  const [inviting, setInviting] = useState(false);
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    workspaceApi.getUserWorkspaces().then((data) => {
+  const loadWorkspacesAndInvites = async () => {
+    try {
+      const data = await workspaceApi.getUserWorkspaces();
       setWorkspaces(data);
-      if (data.length > 0 && !activeWorkspace) {
-        setActiveWorkspace(data[0]);
+      if (data.length > 0) {
+        if (!activeWorkspace) {
+          setActiveWorkspace(data[0]);
+        } else {
+          const updatedActive = data.find((w) => w._id === activeWorkspace._id);
+          if (updatedActive) setActiveWorkspace(updatedActive);
+        }
       }
-    });
+
+      // Fetch pending invitations
+      const invites = await workspaceApi.getPendingInvitations();
+      setPendingInvites(invites);
+    } catch (e) {
+      console.error('Failed to load workspaces / invites:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadWorkspacesAndInvites();
   }, []);
 
   useEffect(() => {
@@ -40,6 +59,26 @@ export const DashboardPage: React.FC = () => {
       })
       .catch(() => setLoading(false));
   }, [activeWorkspace, search, starredOnly]);
+
+  const handleAcceptInvite = async (token: string) => {
+    try {
+      const joinedWorkspace = await workspaceApi.acceptInvitation(token);
+      alert(`Joined workspace "${joinedWorkspace.name}"!`);
+      await loadWorkspacesAndInvites();
+      setActiveWorkspace(joinedWorkspace);
+    } catch (e) {
+      alert('Failed to accept invitation');
+    }
+  };
+
+  const handleDeclineInvite = async (token: string) => {
+    try {
+      await workspaceApi.declineInvitation(token);
+      setPendingInvites((prev) => prev.filter((i) => i.token !== token));
+    } catch (e) {
+      alert('Failed to decline invitation');
+    }
+  };
 
   const handleCreateBoard = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,13 +107,28 @@ export const DashboardPage: React.FC = () => {
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeWorkspace || !inviteEmail) return;
+    setInviting(true);
     try {
       await workspaceApi.inviteMember(activeWorkspace._id, inviteEmail, inviteRole);
       alert(`Invitation sent to ${inviteEmail}!`);
       setShowInviteModal(false);
       setInviteEmail('');
-    } catch (e) {
-      alert('Failed to send invitation');
+      loadWorkspacesAndInvites();
+    } catch (e: any) {
+      alert(e.response?.data?.error || 'Failed to send invitation');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!activeWorkspace) return;
+    if (!confirm('Are you sure you want to remove this member from the workspace?')) return;
+    try {
+      await workspaceApi.removeMember(activeWorkspace._id, memberId);
+      loadWorkspacesAndInvites();
+    } catch (e: any) {
+      alert(e.response?.data?.error || 'Failed to remove member');
     }
   };
 
@@ -83,12 +137,64 @@ export const DashboardPage: React.FC = () => {
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8">
+        {/* Pending Invitations Banner */}
+        {pendingInvites.length > 0 && (
+          <div className="space-y-3">
+            {pendingInvites.map((invite) => (
+              <div
+                key={invite._id}
+                className="bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-slate-900 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-base">Workspace Invitation</h4>
+                    <p className="text-xs text-slate-300">
+                      You were invited to join <span className="font-semibold text-blue-400">{invite.workspaceId?.name || 'Workspace'}</span> as <span className="uppercase font-semibold text-indigo-300">{invite.role}</span>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                  <button
+                    onClick={() => handleDeclineInvite(invite.token)}
+                    className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold flex items-center space-x-1 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Decline</span>
+                  </button>
+                  <button
+                    onClick={() => handleAcceptInvite(invite.token)}
+                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1 transition-all shadow-md shadow-blue-500/20"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Accept Invitation</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Workspace Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">
-              {activeWorkspace ? activeWorkspace.name : 'Dashboard'}
-            </h1>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-3xl font-bold tracking-tight text-white">
+                {activeWorkspace ? activeWorkspace.name : 'Dashboard'}
+              </h1>
+              {activeWorkspace && (
+                <button
+                  onClick={() => setShowMembersModal(true)}
+                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-full text-xs font-semibold text-slate-300 flex items-center space-x-1.5 transition-colors"
+                >
+                  <Users className="w-3.5 h-3.5 text-blue-400" />
+                  <span>{activeWorkspace.members?.length || 1} Members</span>
+                </button>
+              )}
+            </div>
             <p className="text-sm text-slate-400 mt-1">
               Collaborative whiteboard workspaces & meeting notes
             </p>
@@ -229,18 +335,21 @@ export const DashboardPage: React.FC = () => {
                 required
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="colleague@company.com"
+                placeholder="ketan@example.com"
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
               />
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as any)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none"
-              >
-                <option value="editor">Editor (Draw, Edit Notes)</option>
-                <option value="viewer">Viewer (Read Only)</option>
-                <option value="owner">Owner (Full Control)</option>
-              </select>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Permission Role</label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as any)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none"
+                >
+                  <option value="editor">Editor (Draw, Edit Notes & Boards)</option>
+                  <option value="viewer">Viewer (Read Only)</option>
+                  <option value="owner">Owner (Full Workspace Admin)</option>
+                </select>
+              </div>
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
@@ -251,12 +360,71 @@ export const DashboardPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
+                  disabled={inviting}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm"
                 >
-                  Send Invite
+                  {inviting ? 'Inviting...' : 'Send Invite'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Workspace Members Modal */}
+      {showMembersModal && activeWorkspace && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center space-x-2">
+                <Users className="w-5 h-5 text-blue-400" />
+                <span>Workspace Members ({activeWorkspace.name})</span>
+              </h3>
+              <button onClick={() => setShowMembersModal(false)} className="text-slate-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto space-y-3">
+              {activeWorkspace.members?.map((member: WorkspaceMember) => {
+                const isUserObj = typeof member.userId === 'object';
+                const name = isUserObj ? member.userId.name : 'User';
+                const email = isUserObj ? member.userId.email : '';
+                const memberId = isUserObj ? member.userId._id : (member.userId as unknown as string);
+
+                return (
+                  <div
+                    key={memberId}
+                    className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-600/30 text-blue-400 font-bold flex items-center justify-center text-xs">
+                        {name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-200">{name}</p>
+                        <p className="text-xs text-slate-500">{email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <span className="px-2.5 py-1 bg-slate-800 rounded-full text-xs font-semibold uppercase text-blue-400 border border-slate-700">
+                        {member.role}
+                      </span>
+                      {member.role !== 'owner' && (
+                        <button
+                          onClick={() => handleRemoveMember(memberId)}
+                          className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                          title="Remove member"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

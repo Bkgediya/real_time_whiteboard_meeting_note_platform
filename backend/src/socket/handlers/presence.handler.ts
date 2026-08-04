@@ -7,9 +7,12 @@ export const registerPresenceHandlers = (io: Server, socket: AuthenticatedSocket
     const { boardId, x, y, userName } = data;
     const roomName = `board:${boardId}`;
 
+    const fallbackName = socket.user?.name || socket.user?.email?.split('@')[0] || 'User';
+    const finalUserName = userName && userName !== 'User' ? userName : fallbackName;
+
     const cursorData = {
       userId: socket.user!.userId,
-      userName: userName || socket.user!.email,
+      userName: finalUserName,
       x,
       y,
       timestamp: Date.now(),

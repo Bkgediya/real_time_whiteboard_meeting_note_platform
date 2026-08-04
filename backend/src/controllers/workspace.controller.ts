@@ -57,8 +57,18 @@ export class WorkspaceController {
   async inviteMember(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { email, role } = req.body;
-      const invitation = await workspaceService.inviteMember(req.params.id, email, role);
-      res.status(201).json(invitation);
+      const result = await workspaceService.inviteMember(req.params.id, email, role);
+      res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getPendingInvitations(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const email = req.user!.email;
+      const invitations = await workspaceService.getPendingInvitations(email);
+      res.json(invitations);
     } catch (error) {
       next(error);
     }
@@ -70,6 +80,16 @@ export class WorkspaceController {
       const userId = req.user!.userId;
       const workspace = await workspaceService.acceptInvitation(token, userId);
       res.json(workspace);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async declineInvitation(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.params;
+      const result = await workspaceService.declineInvitation(token);
+      res.json(result);
     } catch (error) {
       next(error);
     }
