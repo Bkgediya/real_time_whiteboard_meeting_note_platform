@@ -15,7 +15,7 @@ export const Navbar: React.FC = () => {
       authApi
         .getCurrentUser()
         .then((userData) => setUser(userData))
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [user]);
 

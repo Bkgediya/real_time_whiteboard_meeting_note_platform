@@ -27,7 +27,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
   };
 
   return (
-    <div className="w-80 md:w-96 bg-slate-900 border-l border-slate-800 flex flex-col h-full z-20 shadow-2xl">
+    <div className="absolute top-0 right-0 bottom-0 z-50 w-80 md:w-96 bg-slate-900 border-l border-slate-800 flex flex-col h-full shadow-2xl transition-all duration-200">
       {/* Header */}
       <div className="h-14 px-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
         <div className="flex items-center space-x-2 text-blue-400">
@@ -37,7 +37,8 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
         {onClose && (
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            title="Close Notes Panel"
           >
             <X className="w-5 h-5" />
           </button>
@@ -47,6 +48,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
       {/* Textarea Notes Editor */}
       <div className="flex-1 p-4 bg-slate-900/50">
         <textarea
+          autoFocus
           value={content}
           onChange={handleChange}
           readOnly={isReadOnly}

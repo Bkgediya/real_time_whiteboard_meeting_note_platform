@@ -20,7 +20,8 @@ export const BoardPage: React.FC = () => {
   const { elements, setElements } = useBoardStore();
 
   const [boardDetail, setBoardDetail] = useState<BoardDetailResponse | null>(null);
-  const [showNotes, setShowNotes] = useState(true);
+  const [notesText, setNotesText] = useState<string>('');
+  const [showNotes, setShowNotes] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -37,6 +38,9 @@ export const BoardPage: React.FC = () => {
     isInitialLoadRef.current = true;
     boardApi.getBoardById(boardId).then((data) => {
       setBoardDetail(data);
+      if (data.note) {
+        setNotesText(data.note);
+      }
       if (data.board.snapshot?.elements) {
         setElements(data.board.snapshot.elements);
       }
@@ -46,6 +50,13 @@ export const BoardPage: React.FC = () => {
       }, 500);
     });
   }, [boardId, setElements]);
+
+  // Sync real-time notes updates received from socket
+  useEffect(() => {
+    if (notesContent) {
+      setNotesText(notesContent);
+    }
+  }, [notesContent]);
 
   // Debounced Auto-Save Effect
   useEffect(() => {
@@ -64,6 +75,11 @@ export const BoardPage: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [elements, boardId, boardDetail]);
+
+  const handleNotesUpdate = (newContent: string) => {
+    setNotesText(newContent);
+    emitNotesUpdate(newContent);
+  };
 
   const handleManualSave = async () => {
     if (!boardId) return;
@@ -142,8 +158,9 @@ export const BoardPage: React.FC = () => {
 
           <button
             onClick={() => setShowNotes(!showNotes)}
-            className={`p-2 rounded-lg border transition-colors ${showNotes ? 'bg-blue-600/20 border-blue-500/30 text-blue-400' : 'text-slate-400 border-slate-800 hover:bg-slate-800'
-              }`}
+            className={`p-2 rounded-lg border transition-colors ${
+              showNotes ? 'bg-blue-600/20 border-blue-500/30 text-blue-400' : 'text-slate-400 border-slate-800 hover:bg-slate-800'
+            }`}
             title="Toggle Meeting Notes Panel"
           >
             <FileText className="w-4 h-4" />
@@ -170,8 +187,8 @@ export const BoardPage: React.FC = () => {
         {/* Side-by-side Rich Meeting Notes Panel */}
         {showNotes && (
           <NotesPanel
-            initialContent={notesContent || (boardDetail ? boardDetail.note : '')}
-            onUpdateNotes={(content) => emitNotesUpdate(content)}
+            initialContent={notesText}
+            onUpdateNotes={handleNotesUpdate}
             onClose={() => setShowNotes(false)}
           />
         )}
