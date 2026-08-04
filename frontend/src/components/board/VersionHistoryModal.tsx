@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { boardApi } from '../../api/boardApi';
-import { History, X, RotateCcw } from 'lucide-react';
+import { History, X, RotateCcw, Loader2 } from 'lucide-react';
 
 interface VersionHistoryModalProps {
   boardId: string;
@@ -11,6 +11,7 @@ interface VersionHistoryModalProps {
 export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({ boardId, onClose, onRestore }) => {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   useEffect(() => {
     boardApi
@@ -23,12 +24,14 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({ boardI
   }, [boardId]);
 
   const handleRestore = async (versionId: string) => {
+    setRestoringId(versionId);
     try {
       const res = await boardApi.restoreSnapshot(boardId, versionId);
       onRestore(res.snapshot);
       onClose();
     } catch (e) {
       alert('Failed to restore snapshot version');
+      setRestoringId(null);
     }
   };
 
@@ -64,13 +67,6 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({ boardI
                     {new Date(item.createdAt).toLocaleString()} by {item.userId?.name || 'User'}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleRestore(item._id)}
-                  className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white text-xs font-semibold rounded-lg flex items-center space-x-1 transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Restore</span>
-                </button>
               </div>
             ))
           )}

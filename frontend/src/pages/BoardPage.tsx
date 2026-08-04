@@ -183,7 +183,11 @@ export const BoardPage: React.FC = () => {
           boardId={boardId}
           onClose={() => setShowHistory(false)}
           onRestore={(snapshot) => {
-            if (snapshot?.elements) setElements(snapshot.elements);
+            if (snapshot?.elements) {
+              setElements(snapshot.elements);
+            } else if (Array.isArray(snapshot)) {
+              setElements(snapshot);
+            }
           }}
         />
       )}

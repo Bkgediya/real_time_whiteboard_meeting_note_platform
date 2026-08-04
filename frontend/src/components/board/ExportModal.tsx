@@ -8,15 +8,27 @@ interface ExportModalProps {
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({ boardId, onClose }) => {
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [downloadingPNG, setDownloadingPNG] = useState(false);
+
+  const getCanvasDataURL = (): string => {
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      return canvas.toDataURL('image/png');
+    }
+    return '';
+  };
 
   const handleDownloadPDF = async () => {
-    setDownloading(true);
+    setDownloadingPDF(true);
     try {
-      const response = await axiosClient.get(`/export/${boardId}/pdf`, {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const canvasImageDataURL = getCanvasDataURL();
+      const response = await axiosClient.post(
+        `/export/${boardId}/pdf`,
+        { canvasImageBase64: canvasImageDataURL },
+        { responseType: 'blob' }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `meeting_summary_${boardId}.pdf`);
@@ -26,23 +38,28 @@ export const ExportModal: React.FC<ExportModalProps> = ({ boardId, onClose }) =>
     } catch (e) {
       alert('Failed to export PDF summary');
     } finally {
-      setDownloading(false);
+      setDownloadingPDF(false);
     }
   };
 
   const handleDownloadPNG = async () => {
+    setDownloadingPNG(true);
     try {
-      const { data } = await axiosClient.get(`/export/${boardId}/png`);
-      const blob = new Blob([JSON.stringify(data.snapshot, null, 2)], { type: 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `board_canvas_${boardId}.json`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const canvasImageDataURL = getCanvasDataURL();
+      if (canvasImageDataURL) {
+        const link = document.createElement('a');
+        link.href = canvasImageDataURL;
+        link.setAttribute('download', `board_diagram_${boardId}.png`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } else {
+        alert('Canvas diagram not found');
+      }
     } catch (e) {
-      alert('Failed to export PNG/JSON representation');
+      alert('Failed to export PNG image');
+    } finally {
+      setDownloadingPNG(false);
     }
   };
 
@@ -62,21 +79,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({ boardId, onClose }) =>
         <div className="my-6 grid grid-cols-2 gap-4">
           <button
             onClick={handleDownloadPDF}
-            disabled={downloading}
-            className="p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-blue-500 rounded-xl flex flex-col items-center gap-2 text-center transition-all"
+            disabled={downloadingPDF}
+            className="p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-blue-500 rounded-xl flex flex-col items-center gap-2 text-center transition-all disabled:opacity-50"
           >
             <FileText className="w-8 h-8 text-blue-500" />
-            <span className="font-semibold text-sm">PDF Meeting Summary</span>
-            <span className="text-xs text-slate-500">Board info + rich notes</span>
+            <span className="font-semibold text-sm">
+              {downloadingPDF ? 'Generating...' : 'PDF Summary'}
+            </span>
+            <span className="text-xs text-slate-500">Diagram + Meeting Notes</span>
           </button>
 
           <button
             onClick={handleDownloadPNG}
-            className="p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500 rounded-xl flex flex-col items-center gap-2 text-center transition-all"
+            disabled={downloadingPNG}
+            className="p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500 rounded-xl flex flex-col items-center gap-2 text-center transition-all disabled:opacity-50"
           >
             <ImageIcon className="w-8 h-8 text-indigo-400" />
-            <span className="font-semibold text-sm">Canvas Snapshot</span>
-            <span className="text-xs text-slate-500">Vector canvas JSON</span>
+            <span className="font-semibold text-sm">
+              {downloadingPNG ? 'Exporting...' : 'PNG Diagram'}
+            </span>
+            <span className="text-xs text-slate-500">High-res canvas image</span>
           </button>
         </div>
       </div>

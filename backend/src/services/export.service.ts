@@ -3,7 +3,7 @@ import { Note } from '../models/Note.js';
 import { generateMeetingNotesPDF } from '../utils/pdf.generator.js';
 
 export class ExportService {
-  async exportBoardPDF(boardId: string, authorName?: string): Promise<Buffer> {
+  async exportBoardPDF(boardId: string, authorName?: string, canvasImageBase64?: string): Promise<Buffer> {
     const board = await Board.findById(boardId);
     if (!board) {
       throw { statusCode: 404, message: 'Board not found' };
@@ -17,6 +17,7 @@ export class ExportService {
       notesContent: note?.content || '',
       authorName: authorName || 'Anonymous',
       elementCount: elementsCount,
+      canvasImageBase64,
     });
 
     return pdfBuffer;

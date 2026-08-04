@@ -9,7 +9,9 @@ export class ExportController {
     try {
       const boardId = req.params.id;
       const authorName = req.user?.email || 'User';
-      const pdfBuffer = await exportService.exportBoardPDF(boardId, authorName);
+      const canvasImageBase64 = req.body?.canvasImageBase64 || (req.query?.canvasImageBase64 as string);
+
+      const pdfBuffer = await exportService.exportBoardPDF(boardId, authorName, canvasImageBase64);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="meeting_summary_${boardId}.pdf"`);

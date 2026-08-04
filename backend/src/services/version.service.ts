@@ -21,12 +21,38 @@ export class VersionService {
       throw { statusCode: 404, message: 'Board not found' };
     }
 
-    board.snapshot = targetOp.payload;
+    const opsUpToVersion = await BoardOp.find({
+      boardId,
+      sequenceId: { $lte: targetOp.sequenceId },
+    }).sort({ sequenceId: 1 });
+
+    const elementsMap = new Map<string, any>();
+
+    for (const op of opsUpToVersion) {
+      if (op.opType === 'update' && op.payload?.elements) {
+        elementsMap.clear();
+        op.payload.elements.forEach((el: any) => elementsMap.set(el.id, el));
+      } else if (op.opType === 'add' || op.opType === 'update') {
+        if (op.payload?.id) {
+          elementsMap.set(op.payload.id, op.payload);
+        }
+      } else if (op.opType === 'delete') {
+        if (op.payload?.id) {
+          elementsMap.delete(op.payload.id);
+        }
+      } else if (op.opType === 'clear') {
+        elementsMap.clear();
+      }
+    }
+
+    const restoredSnapshot = { elements: Array.from(elementsMap.values()) };
+
+    board.snapshot = restoredSnapshot;
     await board.save();
 
     return {
       message: 'Board restored successfully to historical snapshot',
-      snapshot: board.snapshot,
+      snapshot: restoredSnapshot,
     };
   }
 }

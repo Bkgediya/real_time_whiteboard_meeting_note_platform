@@ -9,6 +9,7 @@ const exportController = new ExportController();
 router.use(authenticateJWT);
 
 router.get('/:id/pdf', checkBoardRole('viewer'), exportController.exportPDF);
+router.post('/:id/pdf', checkBoardRole('viewer'), exportController.exportPDF);
 router.get('/:id/png', checkBoardRole('viewer'), exportController.exportPNG);
 
 export default router;
