@@ -37,7 +37,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ boardId, onClose }) => {
         <div className="flex justify-between items-center pb-4 border-b border-slate-800">
           <div className="flex items-center space-x-2.5">
             <Share2 className="w-5 h-5 text-blue-400" />
-            <h3 className="font-semibold text-lg">Share Board</h3>
+            <h3 className="font-semibold text-lg">Share Board Link</h3>
           </div>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-white rounded-lg">
             <X className="w-5 h-5" />

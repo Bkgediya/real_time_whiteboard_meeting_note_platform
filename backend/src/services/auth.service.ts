@@ -39,6 +39,7 @@ export class AuthService {
     return {
       user: {
         id: user._id.toString(),
+        _id: user._id.toString(),
         name: user.name,
         email: user.email,
         isVerified: user.isVerified,
@@ -71,6 +72,7 @@ export class AuthService {
     return {
       user: {
         id: user._id.toString(),
+        _id: user._id.toString(),
         name: user.name,
         email: user.email,
         avatar: user.avatar,
@@ -129,7 +131,14 @@ export class AuthService {
     if (!user) {
       throw { statusCode: 404, message: 'User not found' };
     }
-    return user;
+    return {
+      id: user._id.toString(),
+      _id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      isVerified: user.isVerified,
+    };
   }
 
   async logout(userId: string) {

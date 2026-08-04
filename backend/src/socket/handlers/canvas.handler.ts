@@ -10,15 +10,26 @@ export const registerCanvasHandlers = (io: Server, socket: AuthenticatedSocket) 
     const roomName = `board:${boardId}`;
 
     try {
-      // Authorization check on socket event
       const board = await Board.findById(boardId);
       if (!board) return;
 
       const workspace = await Workspace.findById(board.workspaceId);
       if (!workspace) return;
 
-      const member = workspace.members.find((m) => m.userId.toString() === socket.user!.userId);
-      if (!member || member.role === 'viewer') {
+      const userId = socket.user!.userId;
+      const isBoardOwner = board.ownerId.toString() === userId;
+      const isWsOwner = workspace.ownerId.toString() === userId;
+
+      const boardMember = board.members.find((m) => m.userId.toString() === userId);
+      const wsMember = workspace.members.find((m) => m.userId.toString() === userId);
+
+      const isAuthorizedEditor =
+        isBoardOwner ||
+        isWsOwner ||
+        (boardMember && boardMember.role === 'editor') ||
+        (wsMember && (wsMember.role === 'editor' || wsMember.role === 'owner'));
+
+      if (!isAuthorizedEditor) {
         socket.emit('error', { message: 'Unauthorized: Viewers cannot edit the canvas' });
         return;
       }
@@ -29,15 +40,15 @@ export const registerCanvasHandlers = (io: Server, socket: AuthenticatedSocket) 
         boardId,
         opType,
         payload: element,
-        userId: socket.user!.userId,
+        userId,
         sequenceId: opCount + 1,
       });
 
-      // Broadcast operation to room
+      // Broadcast operation to all other users in board room
       socket.to(roomName).emit('canvas:op', {
         opType,
         element,
-        userId: socket.user!.userId,
+        userId,
       });
     } catch (error) {
       console.error('[Socket Canvas Error]', error);

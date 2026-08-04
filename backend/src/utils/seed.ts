@@ -66,10 +66,10 @@ const seedDatabase = async () => {
     });
 
     console.log('=================================================');
-    console.log('✅ Database Seeded Successfully!');
-    console.log(`👤 Demo Owner: alice@example.com / password123`);
-    console.log(`👤 Demo Editor: bob@example.com / password123`);
-    console.log(`📋 Demo Board ID: ${demoBoard._id}`);
+    console.log('Database Seeded Successfully!');
+    console.log(`Demo Owner: alice@example.com / password123`);
+    console.log(`Demo Editor: bob@example.com / password123`);
+    console.log(`Demo Board ID: ${demoBoard._id}`);
     console.log('=================================================');
 
     process.exit(0);

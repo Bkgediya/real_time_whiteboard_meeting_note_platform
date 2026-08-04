@@ -59,6 +59,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
   addElement: (element) => {
     const { elements, undoStack } = get();
+    if (elements.some((el) => el.id === element.id)) {
+      set({
+        elements: elements.map((el) => (el.id === element.id ? element : el)),
+      });
+      return;
+    }
     set({
       elements: [...elements, element],
       undoStack: [...undoStack, elements],

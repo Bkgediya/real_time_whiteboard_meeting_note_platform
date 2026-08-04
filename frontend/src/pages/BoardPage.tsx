@@ -11,7 +11,8 @@ import { NotesPanel } from '../components/board/NotesPanel';
 import { VersionHistoryModal } from '../components/board/VersionHistoryModal';
 import { ExportModal } from '../components/board/ExportModal';
 import { ShareModal } from '../components/board/ShareModal';
-import { ArrowLeft, Share2, Download, History, FileText, CheckCircle2, Loader2 } from 'lucide-react';
+import { InviteBoardModal } from '../components/board/InviteBoardModal';
+import { ArrowLeft, Share2, Download, History, FileText, CheckCircle2, Loader2, UserPlus } from 'lucide-react';
 
 export const BoardPage: React.FC = () => {
   const { id: boardId } = useParams<{ id: string }>();
@@ -25,6 +26,7 @@ export const BoardPage: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showInviteBoard, setShowInviteBoard] = useState(false);
 
   // Save Status: 'saved' | 'saving' | 'unsaved'
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
@@ -148,11 +150,32 @@ export const BoardPage: React.FC = () => {
             <Download className="w-4 h-4" />
           </button>
 
+          {/* Dedicated Invite Button (Owner Only) */}
+          {(() => {
+            const currentUserId = user ? (user.id || (user as any)._id) : null;
+            const boardOwner = boardDetail?.board?.ownerId;
+            const boardOwnerId = typeof boardOwner === 'object' ? (boardOwner as any)?._id || (boardOwner as any)?.id : boardOwner;
+            const isBoardOwner = Boolean(currentUserId && boardOwnerId && currentUserId.toString() === boardOwnerId.toString());
+
+            return isBoardOwner ? (
+              <button
+                onClick={() => setShowInviteBoard(true)}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow-md transition-all"
+                title="Invite users to this board"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Invite</span>
+              </button>
+            ) : null;
+          })()}
+
+          {/* Public Share Link Button */}
           <button
             onClick={() => setShowShare(true)}
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5"
+            className="px-3 py-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-colors"
+            title="Generate public share link"
           >
-            <Share2 className="w-3.5 h-3.5" />
+            <Share2 className="w-3.5 h-3.5 text-blue-400" />
             <span>Share</span>
           </button>
 
@@ -179,6 +202,7 @@ export const BoardPage: React.FC = () => {
         {/* Konva Stage Whiteboard */}
         <div className="flex-1 h-full relative">
           <Canvas
+            isReadOnly={boardDetail?.isReadOnly}
             onCanvasOp={(opType, element) => emitCanvasOp(opType, element)}
             onCursorMove={(x, y) => emitCursorMove(x, y, user?.name || 'User')}
           />
@@ -188,6 +212,7 @@ export const BoardPage: React.FC = () => {
         {showNotes && (
           <NotesPanel
             initialContent={notesText}
+            isReadOnly={boardDetail?.isReadOnly}
             onUpdateNotes={handleNotesUpdate}
             onClose={() => setShowNotes(false)}
           />
@@ -195,6 +220,10 @@ export const BoardPage: React.FC = () => {
       </div>
 
       {/* Modals */}
+      {showInviteBoard && boardId && (
+        <InviteBoardModal boardId={boardId} onClose={() => setShowInviteBoard(false)} />
+      )}
+
       {showHistory && boardId && (
         <VersionHistoryModal
           boardId={boardId}

@@ -1,10 +1,22 @@
 import { axiosClient } from './axiosClient';
 
+export interface BoardMember {
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  role: 'editor' | 'viewer';
+}
+
 export interface Board {
   _id: string;
   title: string;
   workspaceId: string;
   ownerId: string | { _id: string; name: string; email: string };
+  isPrivate?: boolean;
+  members?: BoardMember[];
   isStarred: boolean;
   lastOpenedAt: string;
   snapshot: {
@@ -22,6 +34,15 @@ export interface BoardDetailResponse {
   isReadOnly?: boolean;
 }
 
+export interface BoardInvitation {
+  _id: string;
+  boardId: { _id: string; title: string; ownerId?: { name?: string; email?: string } };
+  email: string;
+  role: 'editor' | 'viewer';
+  token: string;
+  expiresAt: string;
+}
+
 export const boardApi = {
   getWorkspaceBoards: async (workspaceId: string, search?: string, starred?: boolean): Promise<Board[]> => {
     const { data } = await axiosClient.get(`/boards/workspace/${workspaceId}`, {
@@ -37,6 +58,30 @@ export const boardApi = {
 
   createBoard: async (workspaceId: string, title: string): Promise<Board> => {
     const { data } = await axiosClient.post('/boards', { workspaceId, title });
+    return data;
+  },
+
+  inviteToBoard: async (boardId: string, email: string, role: 'editor' | 'viewer') => {
+    const { data } = await axiosClient.post(`/boards/${boardId}/invite`, { email, role });
+    return data;
+  },
+
+  getPendingBoardInvitations: async (): Promise<BoardInvitation[]> => {
+    const { data } = await axiosClient.get('/boards/invitations/pending');
+    return data;
+  },
+
+  acceptBoardInvitation: async (token: string): Promise<Board> => {
+    const { data } = await axiosClient.post(`/boards/accept-invite/${token}`);
+    return data;
+  },
+
+  declineBoardInvitation: async (token: string): Promise<void> => {
+    await axiosClient.post(`/boards/decline-invite/${token}`);
+  },
+
+  removeBoardMember: async (boardId: string, memberId: string): Promise<Board> => {
+    const { data } = await axiosClient.delete(`/boards/${boardId}/members/${memberId}`);
     return data;
   },
 

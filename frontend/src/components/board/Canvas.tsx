@@ -147,6 +147,9 @@ export const Canvas: React.FC<CanvasProps> = ({ onCanvasOp, onCursorMove, isRead
   };
 
   const handleMouseUp = () => {
+    if (isDrawing && currentLineRef.current && onCanvasOp) {
+      onCanvasOp('update', currentLineRef.current);
+    }
     setIsDrawing(false);
     currentLineRef.current = null;
   };
@@ -165,7 +168,8 @@ export const Canvas: React.FC<CanvasProps> = ({ onCanvasOp, onCursorMove, isRead
   const commitInlineEdit = () => {
     if (!editingId) return;
     updateElement(editingId, { text: editingText });
-    const el = elements.find((e) => e.id === editingId);
+    const freshElements = useBoardStore.getState().elements;
+    const el = freshElements.find((e) => e.id === editingId);
     if (el && onCanvasOp) {
       onCanvasOp('update', { ...el, text: editingText });
     }
@@ -301,7 +305,16 @@ export const Canvas: React.FC<CanvasProps> = ({ onCanvasOp, onCursorMove, isRead
         <textarea
           autoFocus
           value={editingText}
-          onChange={(e) => setEditingText(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setEditingText(val);
+            updateElement(editingId, { text: val });
+            const freshElements = useBoardStore.getState().elements;
+            const el = freshElements.find((item) => item.id === editingId);
+            if (el && onCanvasOp) {
+              onCanvasOp('update', { ...el, text: val });
+            }
+          }}
           onBlur={commitInlineEdit}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {

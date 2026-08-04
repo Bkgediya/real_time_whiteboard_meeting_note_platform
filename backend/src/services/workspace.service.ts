@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import { Workspace, WorkspaceRole } from '../models/Workspace.js';
-import { User } from '../models/User.js';
 import { Invitation } from '../models/Invitation.js';
 
 export class WorkspaceService {
@@ -15,10 +14,26 @@ export class WorkspaceService {
   }
 
   async getUserWorkspaces(userId: string) {
-    const workspaces = await Workspace.find({ 'members.userId': userId })
+    const userObjId = new mongoose.Types.ObjectId(userId);
+    const workspaces = await Workspace.find({ 'members.userId': userObjId })
       .populate('members.userId', 'name email avatar')
       .populate('ownerId', 'name email avatar')
       .sort({ updatedAt: -1 });
+
+    // Prioritize user's own owned workspace at index 0
+    workspaces.sort((a, b) => {
+      const getOwnerIdStr = (owner: any) => owner?._id?.toString() ?? owner?.toString() ?? '';
+      const aOwnerId = getOwnerIdStr(a.ownerId);
+      const bOwnerId = getOwnerIdStr(b.ownerId);
+
+      const aIsOwner = aOwnerId === userId;
+      const bIsOwner = bOwnerId === userId;
+
+      if (aIsOwner && !bIsOwner) return -1;
+      if (!aIsOwner && bIsOwner) return 1;
+      return 0;
+    });
+
     return workspaces;
   }
 

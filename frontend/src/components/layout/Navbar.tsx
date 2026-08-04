@@ -20,6 +20,7 @@ export const Navbar: React.FC = () => {
   }, [user]);
 
   const handleLogout = () => {
+    setActiveWorkspace(null as any);
     logout();
     navigate('/login');
   };

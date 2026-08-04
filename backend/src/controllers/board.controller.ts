@@ -20,8 +20,10 @@ export class BoardController {
     try {
       const { workspaceId } = req.params;
       const { search, starred } = req.query;
+      const userId = req.user!.userId;
       const boards = await boardService.getWorkspaceBoards(
         workspaceId,
+        userId,
         search as string,
         starred === 'true'
       );
@@ -33,8 +35,60 @@ export class BoardController {
 
   async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const data = await boardService.getBoardById(req.params.id);
+      const userId = req.user!.userId;
+      const data = await boardService.getBoardById(req.params.id, userId);
       res.json(data);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async inviteToBoard(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { email, role } = req.body;
+      const result = await boardService.inviteToBoard(req.params.id, email, role);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getPendingBoardInvitations(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const email = req.user!.email;
+      const invitations = await boardService.getPendingBoardInvitations(email);
+      res.json(invitations);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async acceptBoardInvitation(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.params;
+      const userId = req.user!.userId;
+      const board = await boardService.acceptBoardInvitation(token, userId);
+      res.json(board);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async declineBoardInvitation(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.params;
+      const result = await boardService.declineBoardInvitation(token);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async removeBoardMember(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { memberId } = req.params;
+      const board = await boardService.removeBoardMember(req.params.id, memberId);
+      res.json(board);
     } catch (error) {
       next(error);
     }

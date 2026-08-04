@@ -63,16 +63,25 @@ export const checkBoardRole = (requiredRole: WorkspaceRole) => {
         return res.status(404).json({ error: 'Parent Workspace not found' });
       }
 
-      const member = workspace.members.find((m) => m.userId.toString() === userId);
-      if (!member) {
-        return res.status(403).json({ error: 'Access denied: You are not a member of this workspace' });
+      const isWsOwner = workspace.ownerId.toString() === userId;
+      const isBoardOwner = board.ownerId.toString() === userId;
+
+      // Workspace owner & Board owner have full control
+      if (isWsOwner || isBoardOwner) {
+        return next();
       }
 
-      const userRoleLevel = roleHierarchy[member.role] || 0;
+      // Check per-board membership & assigned role
+      const boardMember = board.members.find((m) => m.userId.toString() === userId);
+      if (!boardMember) {
+        return res.status(403).json({ error: 'Access denied: You do not have permission for this board' });
+      }
+
+      const userBoardRoleLevel = roleHierarchy[boardMember.role] || 0;
       const requiredRoleLevel = roleHierarchy[requiredRole] || 0;
 
-      if (userRoleLevel < requiredRoleLevel) {
-        return res.status(403).json({ error: `Access denied: Requires ${requiredRole} role or higher` });
+      if (userBoardRoleLevel < requiredRoleLevel) {
+        return res.status(403).json({ error: `Access denied: Requires ${requiredRole} board role` });
       }
 
       next();
