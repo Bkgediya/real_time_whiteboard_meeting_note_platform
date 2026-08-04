@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Stage, Layer, Rect, Circle, Line, Text as KonvaText, Group } from 'react-konva';
 import { useBoardStore, CanvasElement } from '../../store/useBoardStore';
 
@@ -9,6 +9,12 @@ interface CanvasProps {
 }
 
 export const Canvas: React.FC<CanvasProps> = ({ onCanvasOp, onCursorMove, isReadOnly = false }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+
   const {
     selectedTool,
     setSelectedTool,
@@ -28,6 +34,32 @@ export const Canvas: React.FC<CanvasProps> = ({ onCanvasOp, onCursorMove, isRead
 
   const currentLineRef = useRef<CanvasElement | null>(null);
 
+  // Dynamic Responsive Resize Observer for all devices & screen resizes
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.offsetWidth || window.innerWidth,
+          height: containerRef.current.offsetHeight || window.innerHeight,
+        });
+      }
+    };
+
+    updateSize();
+
+    const resizeObserver = new ResizeObserver(updateSize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    window.addEventListener('resize', updateSize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateSize);
+    };
+  }, []);
+
   const handleElementEraserClick = (el: CanvasElement) => {
     if (selectedTool === 'eraser' && !isReadOnly) {
       removeElement(el.id);
@@ -39,6 +71,7 @@ export const Canvas: React.FC<CanvasProps> = ({ onCanvasOp, onCursorMove, isRead
     if (isReadOnly) return;
     const stage = e.target.getStage();
     const point = stage.getPointerPosition();
+    if (!point) return;
 
     // If clicking on background while inline editing, commit edits
     if (editingId) {
@@ -138,7 +171,7 @@ export const Canvas: React.FC<CanvasProps> = ({ onCanvasOp, onCursorMove, isRead
       onCursorMove(point.x, point.y);
     }
 
-    if (!isDrawing || isReadOnly || !currentLineRef.current) return;
+    if (!isDrawing || isReadOnly || !currentLineRef.current || !point) return;
 
     const updatedPoints = currentLineRef.current.points?.concat([point.x, point.y]) || [];
     const updatedEl = { ...currentLineRef.current, points: updatedPoints };
@@ -177,13 +210,16 @@ export const Canvas: React.FC<CanvasProps> = ({ onCanvasOp, onCursorMove, isRead
   };
 
   return (
-    <div className="w-full h-full bg-slate-950 relative overflow-hidden">
+    <div ref={containerRef} className="w-full h-full bg-slate-950 relative overflow-hidden select-none">
       <Stage
-        width={window.innerWidth}
-        height={window.innerHeight}
+        width={dimensions.width}
+        height={dimensions.height}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onTouchStart={handleMouseDown}
+        onTouchMove={handleMouseMove}
+        onTouchEnd={handleMouseUp}
         className={selectedTool === 'eraser' ? 'cursor-pointer' : 'cursor-crosshair'}
       >
         <Layer>

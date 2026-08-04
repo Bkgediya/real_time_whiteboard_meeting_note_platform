@@ -4,7 +4,7 @@ import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import { workspaceApi, WorkspaceMember, Invitation } from '../api/workspaceApi';
 import { boardApi, Board, BoardInvitation } from '../api/boardApi';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Star, Clock, LayoutGrid, Users, UserPlus, Mail, Check, X, Shield, Trash2, Lock, Eye, Edit3, Share2 } from 'lucide-react';
+import { Plus, Search, Clock, LayoutGrid, Users, UserPlus, Mail, Check, X, Trash2, Eye, Edit3 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { InviteBoardModal } from '../components/board/InviteBoardModal';
 
@@ -62,22 +62,6 @@ export const DashboardPage: React.FC = () => {
       console.error('Failed to load dashboard data:', e);
     }
   };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (!activeWorkspace) return;
-    setLoading(true);
-    boardApi
-      .getWorkspaceBoards(activeWorkspace._id, search, starredOnly)
-      .then((data) => {
-        setBoards(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [activeWorkspace, search, starredOnly]);
 
   const handleAcceptWorkspaceInvite = async (token: string) => {
     try {
@@ -173,6 +157,22 @@ export const DashboardPage: React.FC = () => {
       alert(e.response?.data?.error || 'Failed to remove member');
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (!activeWorkspace) return;
+    setLoading(true);
+    boardApi
+      .getWorkspaceBoards(activeWorkspace._id, search, starredOnly)
+      .then((data) => {
+        setBoards(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [activeWorkspace, search, starredOnly]);
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col text-slate-100">
@@ -281,14 +281,6 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-3">
-            {/* <button
-              onClick={() => setShowInviteModal(true)}
-              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-all"
-            >
-              <UserPlus className="w-4 h-4 text-blue-400" />
-              <span>Invite Workspace Members</span>
-            </button> */}
-
             <button
               onClick={() => setShowCreateModal(true)}
               className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 flex items-center space-x-2"
@@ -311,17 +303,6 @@ export const DashboardPage: React.FC = () => {
               className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
             />
           </div>
-
-          <button
-            onClick={() => setStarredOnly(!starredOnly)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 border transition-all ${starredOnly
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-          >
-            <Star className={`w-4 h-4 ${starredOnly ? 'fill-amber-400 text-amber-400' : ''}`} />
-            <span>Starred Boards</span>
-          </button>
         </div>
 
         {/* Board Grid */}
@@ -362,12 +343,6 @@ export const DashboardPage: React.FC = () => {
                       <h3 className="font-bold text-lg text-slate-100 group-hover:text-blue-400 transition-colors line-clamp-1">
                         {board.title}
                       </h3>
-                      <button
-                        onClick={(e) => handleToggleStar(board._id, e)}
-                        className="p-1 text-slate-500 hover:text-amber-400 transition-colors"
-                      >
-                        <Star className={`w-5 h-5 ${board.isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
-                      </button>
                     </div>
 
                     <div className="flex items-center justify-between mt-2">

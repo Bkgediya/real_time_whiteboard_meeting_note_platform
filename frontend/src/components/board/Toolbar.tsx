@@ -42,8 +42,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onClear }) => {
 
   const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ffffff', '#0f172a'];
 
+  const strokeWidthOptions = [
+    { width: 2, sizeClass: 'w-1.5 h-1.5', label: 'Thin' },
+    { width: 4, sizeClass: 'w-2.5 h-2.5', label: 'Medium' },
+    { width: 8, sizeClass: 'w-3.5 h-3.5', label: 'Thick' },
+  ];
+
   return (
-    <div className="absolute top-6 left-6 z-20 flex flex-col gap-3 bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl border border-slate-800 shadow-2xl">
+    <div className="absolute top-6 left-6 z-20 flex flex-col gap-3 bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl border border-slate-800 shadow-2xl max-h-[calc(100vh-100px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       {/* Tool Selector Buttons */}
       <div className="flex flex-col gap-1.5">
         {tools.map((t) => (
@@ -80,17 +86,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onClear }) => {
 
       <div className="h-px bg-slate-800 my-1" />
 
-      {/* Stroke Width Selector */}
-      <div className="flex flex-col items-center gap-1">
-        {[2, 4, 8].map((w) => (
+      {/* Stroke Thickness Selector (Dot icons instead of raw numbers) */}
+      <div className="flex flex-col items-center gap-1.5">
+        {strokeWidthOptions.map((opt) => (
           <button
-            key={w}
-            onClick={() => setStrokeWidth(w)}
-            className={`w-6 h-6 rounded-lg text-xs font-bold transition-colors ${
-              strokeWidth === w ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+            key={opt.width}
+            onClick={() => setStrokeWidth(opt.width)}
+            title={`Stroke Thickness: ${opt.label}`}
+            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+              strokeWidth === opt.width
+                ? 'bg-blue-600/30 border border-blue-500/50 text-blue-400'
+                : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
-            {w}
+            <div className={`${opt.sizeClass} rounded-full bg-current`} />
           </button>
         ))}
       </div>
